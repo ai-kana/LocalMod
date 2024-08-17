@@ -1,8 +1,8 @@
 using Cysharp.Threading.Tasks;
-using LocalMod.Commands;
+using LocalMod.Core.Commands;
 using Microsoft.Extensions.Logging;
 
-namespace LocalMod.Plugins;
+namespace LocalMod.Core.Plugins;
 
 internal class LoadPluginCommand : IAsyncCommand
 {

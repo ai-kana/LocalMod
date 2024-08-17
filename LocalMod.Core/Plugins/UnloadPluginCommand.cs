@@ -1,7 +1,7 @@
 using Cysharp.Threading.Tasks;
-using LocalMod.Commands;
+using LocalMod.Core.Commands;
 
-namespace LocalMod.Plugins;
+namespace LocalMod.Core.Plugins;
 
 internal class UnloadPluginCommand : IAsyncCommand
 {

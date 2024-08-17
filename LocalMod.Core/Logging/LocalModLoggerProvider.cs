@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace LocalMod.Logging;
+namespace LocalMod.Core.Logging;
 
 internal class LocalModLoggerProvider : ILoggerProvider
 {
@@ -21,8 +21,8 @@ internal class LocalModLoggerProvider : ILoggerProvider
         return CreateLogger(typeof(T).ToString());
     }
 
-    public async void Dispose()
+    public void Dispose()
     {
-        await _Writer.DisposeAsync();
+        _Writer.Dispose();
     }
 }

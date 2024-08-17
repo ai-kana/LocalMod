@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-namespace LocalMod.Commands;
+namespace LocalMod.Core.Commands;
 
 public class RoutineCommandWorker
 {

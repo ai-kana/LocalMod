@@ -5,7 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\LocalMod\LocalMod.csproj" />
+    <ProjectReference Include="..\..\LocalMod.Core\LocalMod.Core.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

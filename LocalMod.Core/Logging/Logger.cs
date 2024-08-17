@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace LocalMod.Logging;
+namespace LocalMod.Core.Logging;
 
 public static class Logger
 {

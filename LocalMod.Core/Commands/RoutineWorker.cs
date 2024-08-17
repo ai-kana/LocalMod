@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-namespace LocalMod.Commands;
+namespace LocalMod.Core.Commands;
 
 internal class RoutineWorker : MonoBehaviour
 {

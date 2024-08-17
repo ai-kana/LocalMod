@@ -1,4 +1,4 @@
-namespace LocalMod.Logging;
+namespace LocalMod.Core.Logging;
 
 internal class LoggerScope : IDisposable
 {

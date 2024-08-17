@@ -1,11 +1,11 @@
-namespace LocalMod.Logging;
+namespace LocalMod.Core.Logging;
 
-internal class LoggerWriter : IAsyncDisposable
+internal class LoggerWriter : IDisposable
 {
     private const string FileName = "Log";
     private const string FileExt = ".log";
     private const string LogName = FileName + FileExt;
-    private const string LogDir = LocalMod.LocalModDirectory + "/Logs/";
+    private const string LogDir = LocalModEntry.LocalModDirectory + "/Logs/";
     private const string LogPath = LogDir + LogName;
 
     private readonly FileStream _Stream;
@@ -61,21 +61,22 @@ internal class LoggerWriter : IAsyncDisposable
     }
 
     private bool IsDisposed = false;
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
         if (IsDisposed)
         {
             throw new ObjectDisposedException(nameof(LoggerWriter));
         }
 
-        await _Semaphore.WaitAsync();
-        SaveFile();
+        _Semaphore.WaitAsync();
 
         GC.SuppressFinalize(this);
 
         _Semaphore.Dispose();
-        await _Writer.DisposeAsync();
-        await _Stream.DisposeAsync();
+        _Writer.DisposeAsync();
+        _Stream.DisposeAsync();
         IsDisposed = true;
+
+        SaveFile();
     }
 }

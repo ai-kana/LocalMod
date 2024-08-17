@@ -1,6 +1,6 @@
 using Cysharp.Threading.Tasks;
 
-namespace LocalMod.Commands;
+namespace LocalMod.Core.Commands;
 
 public interface ICommand
 {

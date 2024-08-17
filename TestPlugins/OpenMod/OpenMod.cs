@@ -35,7 +35,7 @@ public class MyOpenModPlugin : OpenModUnturnedPlugin
         m_Logger = logger;
     }
 
-    protected override async UniTask OnLoadAsync()
+    protected override UniTask OnLoadAsync()
     {
         FieldInfo info = typeof(NetReflection).GetField("clientMethods", BindingFlags.NonPublic | BindingFlags.Static);
         List<ClientMethodInfo> methods = (List<ClientMethodInfo>)info.GetValue(null);
@@ -44,27 +44,26 @@ public class MyOpenModPlugin : OpenModUnturnedPlugin
             m_Logger.LogInformation($"RPC: {method.ToString()}");
         }
         m_Logger.LogInformation("Wrote RPCs");
+
+        return UniTask.CompletedTask;
     }
 
-    protected override async UniTask OnUnloadAsync()
+    protected override UniTask OnUnloadAsync()
     {
+        return UniTask.CompletedTask;
     }
 }
 
 public class PlayerConnected : IEventListener<UnturnedPlayerConnectedEvent>
 {
-    public async Task HandleEventAsync(object? sender, UnturnedPlayerConnectedEvent @event)
+    public Task HandleEventAsync(object? sender, UnturnedPlayerConnectedEvent @event)
     {
         Console.WriteLine("Starting event");
         ITransportConnection connection = @event.Player.SteamPlayer.transportConnection;
         NetId id = @event.Player.SteamPlayer.GetNetId();
 
-        if (TestPlugin.Test.SendServerLog == null)
-        {
-            Console.WriteLine("RPC null");
-            return;
-        }
-
         TestPlugin.Test.SendServerLog.Invoke(id, ENetReliability.Reliable, connection, "Hallo!");
+
+        return Task.CompletedTask;
     }
 }

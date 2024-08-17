@@ -1,10 +1,10 @@
 using Newtonsoft.Json;
 
-namespace LocalMod.Configuration;
+namespace LocalMod.Core.Configuration;
 
 public static class ConfigSaver
 {
-    private const string ConfigPath = LocalMod.LocalModDirectory + "/Config/";
+    private const string ConfigPath = LocalModEntry.LocalModDirectory + "/Config/";
     private const string PathFormat = ConfigPath + "{0}.json" ;
 
     static ConfigSaver()

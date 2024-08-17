@@ -5,7 +5,6 @@
 ## Planned Features
 Features to be added in future
  - Put this on nuget
- - Bootstrapper
  - Hot reloading
  - Abstracted RPCs
  - Abstracted events

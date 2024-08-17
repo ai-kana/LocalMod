@@ -1,6 +1,6 @@
 ﻿using Cysharp.Threading.Tasks;
-using LocalMod.Logging;
-using LocalMod.Plugins;
+using LocalMod.Core.Logging;
+using LocalMod.Core.Plugins;
 using Microsoft.Extensions.Logging;
 
 using SDG.NetPak;

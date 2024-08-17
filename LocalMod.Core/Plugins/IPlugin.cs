@@ -1,6 +1,6 @@
 using Cysharp.Threading.Tasks;
 
-namespace LocalMod.Plugins;
+namespace LocalMod.Core.Plugins;
 
 public interface IPlugin
 {

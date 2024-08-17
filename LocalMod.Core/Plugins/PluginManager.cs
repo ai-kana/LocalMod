@@ -1,19 +1,19 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using Cysharp.Threading.Tasks;
-using LocalMod.Commands;
-using LocalMod.Logging;
+using LocalMod.Core.Commands;
+using LocalMod.Core.Logging;
 using Microsoft.Extensions.Logging;
 using SDG.Unturned;
 
-namespace LocalMod.Plugins;
+namespace LocalMod.Core.Plugins;
 
 public class PluginManager
 {
     internal static ConcurrentBag<IPlugin> Plugins = new();
 
     private static ILogger? _Logger;
-    private const string PluginDirectory = LocalMod.LocalModDirectory + "/Plugins";
+    private const string PluginDirectory = LocalModEntry.LocalModDirectory + "/Plugins";
 
     public static T? GetPlugin<T>() where T : IPlugin
     { 

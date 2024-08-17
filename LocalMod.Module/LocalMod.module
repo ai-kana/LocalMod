@@ -5,7 +5,7 @@
 	"Assemblies":
 	[
 		{
-			"Path": "/LocalMod.dll",
+			"Path": "/LocalMod.Bootstrapper.dll",
 			"Role": "Client"
 		}
 	]
