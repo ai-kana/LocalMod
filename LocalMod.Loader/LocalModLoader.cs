@@ -9,8 +9,6 @@ using System.IO;
 using System.Reflection;
 using SDG.Unturned;
 
-// For more, visit https://openmod.github.io/openmod-docs/devdoc/guides/getting-started.html
-
 [assembly: PluginMetadata("LocalMod.Loader", DisplayName = "LocalModLoader")]
 namespace LocalModLoader;
 
@@ -48,6 +46,7 @@ public class LocalModLoader : OpenModUnturnedPlugin
         return UniTask.CompletedTask;
     }
 
+    // Need to add RPC unloading here as well...
     protected override UniTask OnUnloadAsync()
     {
         return UniTask.CompletedTask;
