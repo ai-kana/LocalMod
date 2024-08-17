@@ -7,4 +7,4 @@ How to install the LocalMod module
   - Right-click Unturned
   - Hover 'Manage'
   - Select 'Browse local files'
- - Copy the LocalMod-Module into 'Unturned/Modules'
+ - Copy the LocalMod-Module into `Unturned/Modules`
