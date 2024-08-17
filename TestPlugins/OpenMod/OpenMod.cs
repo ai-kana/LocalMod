@@ -65,6 +65,6 @@ public class PlayerConnected : IEventListener<UnturnedPlayerConnectedEvent>
             return;
         }
 
-        TestPlugin.Test.SendServerLog.Invoke(id, ENetReliability.Reliable, connection, "Hey faggot");
+        TestPlugin.Test.SendServerLog.Invoke(id, ENetReliability.Reliable, connection, "Hallo!");
     }
 }
