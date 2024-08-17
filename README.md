@@ -6,6 +6,7 @@
 Features to be added in future
  - Put this on nuget
  - Bootstrapper
+ - Hot reloading
  - Abstracted RPCs
  - Abstracted events
  - General unity abstractions
@@ -31,7 +32,5 @@ Your config file will be created in JSON in `Unturned/LocalMod/Config/<name>.jso
 ## Commands
 A questionable system that maybe removed for queueing and executing this in bulk
 Currently exists
- - `LocalMod.Commands.AsyncCommandWorker`
-  - Runs actions on the threadpool
- - `LocalMod.Commands.RoutineCommandWorker`
-  - Runs action in a coroutine once every frame
+ - `LocalMod.Commands.AsyncCommandWorker` runs actions on the threadpool
+ - `LocalMod.Commands.RoutineCommandWorker` runs action in a coroutine once every frame
