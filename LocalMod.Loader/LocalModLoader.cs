@@ -7,7 +7,7 @@ using OpenMod.Unturned.Plugins;
 using OpenMod.API.Plugins;
 using System.IO;
 using System.Reflection;
-using SDG.Unturned;
+using LocalMod.Core.NetAbstractions;
 
 [assembly: PluginMetadata("LocalMod.Loader", DisplayName = "LocalModLoader")]
 namespace LocalModLoader;
@@ -37,7 +37,7 @@ public class LocalModLoader : OpenModUnturnedPlugin
         foreach (string file in files)
         {
             Assembly assembly = Assembly.LoadFile(file);
-            NetReflection.RegisterFromAssembly(assembly);
+            NetMethodManager.GetNetMethods(assembly);
             _Logger.LogInformation($"Loaded net invokables from: {assembly.FullName}");
         }
 

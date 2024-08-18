@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\LocalMod\LocalMod.csproj" />
+    <ProjectReference Include="..\LocalMod.Core\LocalMod.Core.csproj" />
   </ItemGroup>
 
   <Target Name="ChangeAliasesOfNugetRefs" BeforeTargets="FindReferenceAssembliesForReferences;ResolveReferences">

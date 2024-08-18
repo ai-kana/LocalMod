@@ -5,14 +5,14 @@ using Microsoft.Extensions.Logging;
 using SDG.NetPak;
 using SDG.Unturned;
 
-namespace LocalMod.NetAbstractions;
+namespace LocalMod.Core.NetAbstractions;
 
 public class NetMethodManager
 {
-    public static void LogAllRPCs()
+    public static void DumpRPCs()
     {
         ILogger logger = Logger.CreateLogger<NetMethodManager>();
-        using (logger.BeginScope("RPCs"))
+        using (logger.BeginScope("RPCDump"))
         {
             int index = 0;
             using (logger.BeginScope("Client"))
@@ -42,35 +42,33 @@ public class NetMethodManager
 
     private static class ServerMethodInfoFields
     {
-        public static FieldInfo DeclaringTypeField = typeof(ServerMethodInfo).GetField("declaringType", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo NameField = typeof(ServerMethodInfo).GetField("name", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo DebugNameField = typeof(ServerMethodInfo).GetField("debugName", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo CustomAttributeField = typeof(ServerMethodInfo).GetField("customAttribute", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo ReadMethodField = typeof(ServerMethodInfo).GetField("readMethod", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo WriteMethodInfoField = typeof(ServerMethodInfo).GetField("writeMethodInfo", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo MethodIndexField = typeof(ServerMethodInfo).GetField("methodIndex", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo RateLimitIndexField = typeof(ServerMethodInfo).GetField("rateLimitIndex", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo RateLimitedMethodsCountField = typeof(ServerMethodInfo).GetField("rateLimitedMethodsCount", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo DeclaringTypeField = typeof(ServerMethodInfo).GetField("declaringType", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo NameField = typeof(ServerMethodInfo).GetField("name", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo DebugNameField = typeof(ServerMethodInfo).GetField("debugName", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo CustomAttributeField = typeof(ServerMethodInfo).GetField("customAttribute", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo ReadMethodField = typeof(ServerMethodInfo).GetField("readMethod", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo WriteMethodInfoField = typeof(ServerMethodInfo).GetField("writeMethodInfo", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo MethodIndexField = typeof(ServerMethodInfo).GetField("methodIndex", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo RateLimitIndexField = typeof(ServerMethodInfo).GetField("rateLimitIndex", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo RateLimitedMethodsCountField = typeof(ServerMethodInfo).GetField("rateLimitedMethodsCount", BindingFlags.Instance | BindingFlags.NonPublic);
     }
 
     private static class ClientMethodInfoFields
     {
-        public static FieldInfo DeclaringTypeField = typeof(ClientMethodInfo).GetField("declaringType", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo NameField = typeof(ClientMethodInfo).GetField("name", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo DebugNameField = typeof(ClientMethodInfo).GetField("debugName", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo CustomAttributeField = typeof(ClientMethodInfo).GetField("customAttribute", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo ReadMethodField = typeof(ClientMethodInfo).GetField("readMethod", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo WriteMethodInfoField = typeof(ClientMethodInfo).GetField("writeMethodInfo", BindingFlags.Instance | BindingFlags.NonPublic);
-        public static FieldInfo MethodIndexField = typeof(ClientMethodInfo).GetField("methodIndex", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo DeclaringTypeField = typeof(ClientMethodInfo).GetField("declaringType", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo NameField = typeof(ClientMethodInfo).GetField("name", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo DebugNameField = typeof(ClientMethodInfo).GetField("debugName", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo CustomAttributeField = typeof(ClientMethodInfo).GetField("customAttribute", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo ReadMethodField = typeof(ClientMethodInfo).GetField("readMethod", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo WriteMethodInfoField = typeof(ClientMethodInfo).GetField("writeMethodInfo", BindingFlags.Instance | BindingFlags.NonPublic);
+        public readonly static FieldInfo MethodIndexField = typeof(ClientMethodInfo).GetField("methodIndex", BindingFlags.Instance | BindingFlags.NonPublic);
     }
 
-    // misc method
     private static MethodInfo FindClientReceiveMethod = typeof(NetReflection).GetMethod("FindClientReceiveMethod", BindingFlags.Static | BindingFlags.NonPublic);
     private static MethodInfo FindAndRemoveGeneratedMethod = typeof(NetReflection).GetMethod("FindAndRemoveGeneratedMethod", BindingFlags.Static | BindingFlags.NonPublic);
 
     private static MethodInfo FindServerReceiveMethod = typeof(NetReflection).GetMethod("FindServerReceiveMethod", BindingFlags.Static | BindingFlags.NonPublic);
 
-    // misc fields
     private static List<ClientMethodInfo> ClientMethods = 
         (List<ClientMethodInfo>)typeof(NetReflection).GetField("clientMethods", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
 
@@ -83,9 +81,10 @@ public class NetMethodManager
     private static FieldInfo ServerMethodsLengthField = typeof(NetReflection).GetField("serverMethodsLength", BindingFlags.Static | BindingFlags.NonPublic);
     private static FieldInfo ServerMethodsBitCountField = typeof(NetReflection).GetField("serverMethodsBitCount", BindingFlags.Static | BindingFlags.NonPublic);
 
-    private static Type GeneratedMethodType = typeof(NetReflection).GetNestedType("GeneratedMethod", BindingFlags.NonPublic);
-    private static FieldInfo GeneratedMethodInfoField = GeneratedMethodType.GetField("info", BindingFlags.Instance | BindingFlags.Public);
-    private static FieldInfo GeneratedMethodAttributeField = GeneratedMethodType.GetField("attribute", BindingFlags.Instance | BindingFlags.Public);
+    // Generated Method type and fields
+    private readonly static Type GeneratedMethodType = typeof(NetReflection).GetNestedType("GeneratedMethod", BindingFlags.NonPublic);
+    private readonly static FieldInfo GeneratedMethodInfoField = GeneratedMethodType.GetField("info", BindingFlags.Instance | BindingFlags.Public);
+    private readonly static FieldInfo GeneratedMethodAttributeField = GeneratedMethodType.GetField("attribute", BindingFlags.Instance | BindingFlags.Public);
 
     // Tried to clean up the local names as much as I could :/
     // Later: Break this up into more methods
@@ -193,8 +192,7 @@ public class NetMethodManager
         {
             if (!type.IsClass || !type.IsAbstract)
             {
-                continue;
-            }
+                continue; }
             NetInvokableGeneratedClassAttribute generatedClassAttribute = type.GetCustomAttribute<NetInvokableGeneratedClassAttribute>();
             if (generatedClassAttribute == null)
             {
@@ -239,5 +237,133 @@ public class NetMethodManager
         ClientMethodsBitCountField.SetValue(null, NetPakConst.CountBits((uint)ClientMethods.Count));
         ServerMethodsLengthField.SetValue(null, (uint)ServerMethods.Count);
         ServerMethodsBitCountField.SetValue(null, NetPakConst.CountBits((uint)ServerMethods.Count));
+    }
+
+
+
+
+
+    private readonly struct NetMethodData
+    {
+        public readonly Type DeclaringType;
+        public readonly NetMethodAttribute MethodAttribute;
+
+        public NetMethodData(Type declaringType, NetMethodAttribute methodAttribute)
+        {
+            DeclaringType = declaringType;
+            MethodAttribute = methodAttribute;
+        }
+    }
+
+    private static SteamCall GetSteamCall(NetMethodCaller caller) => caller switch
+    {
+        NetMethodCaller.ServerCaller => new(ESteamCallValidation.ONLY_FROM_SERVER),
+        NetMethodCaller.ClientCaller => new(ESteamCallValidation.ONLY_FROM_OWNER),
+        _ => new(ESteamCallValidation.NONE)
+    };
+    
+    private const BindingFlags BindingFlagsMask = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+    private static void ConstructClientNetMethod(NetMethodData data)
+    {
+        MethodInfo writeInfo = data.DeclaringType.GetMethod(data.MethodAttribute.WriteMethodName, BindingFlagsMask);
+        if (writeInfo == null)
+        {
+            return;
+        }
+
+        MethodInfo readInfo = data.DeclaringType.GetMethod(data.MethodAttribute.ReadMethodName, BindingFlagsMask);
+        if (writeInfo == null)
+        {
+            return; }
+
+        SteamCall call = GetSteamCall(data.MethodAttribute.AllowedCaller);
+        
+        ClientMethodReceive readDelegate = (in ClientInvocationContext context) => 
+        {
+            readInfo.Invoke(null, new object[] { context.reader });
+        };
+
+        ClientMethodInfo info = new();
+        ClientMethodInfoFields.DeclaringTypeField.SetValue(info, data.DeclaringType);
+        ClientMethodInfoFields.NameField.SetValue(info, data.MethodAttribute.Name);
+        ClientMethodInfoFields.DebugNameField.SetValue(info, data.DeclaringType.FullName);
+        ClientMethodInfoFields.CustomAttributeField.SetValue(info, call);
+        ClientMethodInfoFields.WriteMethodInfoField.SetValue(info, writeInfo);
+        ClientMethodInfoFields.ReadMethodField.SetValue(info, readDelegate);
+        // Needs to be uint lest we explode and die
+        ClientMethodInfoFields.MethodIndexField.SetValue(info, (uint)ClientMethods.Count);
+        ClientMethods.Add(info);
+    }
+
+    // To do add rate limit support
+    private static void ConstructServerNetMethod(NetMethodData data)
+    {
+        MethodInfo writeInfo = data.DeclaringType.GetMethod(data.MethodAttribute.WriteMethodName, BindingFlagsMask);
+        if (writeInfo == null)
+        {
+            return;
+        }
+
+        MethodInfo readInfo = data.DeclaringType.GetMethod(data.MethodAttribute.ReadMethodName, BindingFlagsMask);
+        if (writeInfo == null)
+        {
+            return; 
+        }
+
+        SteamCall call = GetSteamCall(data.MethodAttribute.AllowedCaller);
+        
+        ServerMethodReceive readDelegate = (in ServerInvocationContext context) => 
+        {
+            readInfo.Invoke(null, new object[] { context.reader });
+        };
+
+        ServerMethodInfo info = new();
+        ServerMethodInfoFields.DeclaringTypeField.SetValue(info, data.DeclaringType);
+        ServerMethodInfoFields.NameField.SetValue(info, data.MethodAttribute.Name);
+        ServerMethodInfoFields.DebugNameField.SetValue(info, data.DeclaringType.FullName);
+        ServerMethodInfoFields.CustomAttributeField.SetValue(info, call);
+        ServerMethodInfoFields.WriteMethodInfoField.SetValue(info, writeInfo);
+        ServerMethodInfoFields.ReadMethodField.SetValue(info, readDelegate);
+        // Needs to be uint lest we explode and die
+        ServerMethodInfoFields.MethodIndexField.SetValue(info, (uint)ServerMethods.Count);
+        ServerMethods.Add(info);
+    }
+
+    public static void GetNetMethods(Assembly assembly)
+    {
+        HashSet<NetMethodData> methods = new();
+
+        foreach (Type type in assembly.GetTypes())
+        {
+            IEnumerable<NetMethodAttribute> attributes = type.GetCustomAttributes<NetMethodAttribute>();
+            if (attributes == null || attributes.Count() == 0)
+            {
+                continue;
+            }
+
+            foreach (NetMethodAttribute attribute in attributes)
+            {
+                NetMethodData data = new(type, attribute);
+                methods.Add(data);
+            }
+        }
+
+        foreach (NetMethodData data in methods)
+        {
+            if (data.MethodAttribute.AllowedCaller == NetMethodCaller.ServerCaller)
+            {
+                ConstructClientNetMethod(data);
+                continue;
+            }
+
+            if (data.MethodAttribute.AllowedCaller == NetMethodCaller.ClientCaller)
+            {
+                ConstructServerNetMethod(data);
+                continue;
+            }
+        }
+
+        ClientMethodsLengthField.SetValue(null, (uint)ClientMethods.Count);
+        ClientMethodsBitCountField.SetValue(null, NetPakConst.CountBits((uint)ClientMethods.Count));
     }
 }

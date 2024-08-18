@@ -17,11 +17,19 @@ internal class LoadPluginCommand : IAsyncCommand
 
     public async UniTask ExecuteAsync()
     {
-        IPlugin plugin = (IPlugin)Activator.CreateInstance(_PluginType);
-        _Logger.LogInformation($"Loading plugin {plugin.Name} by {plugin.Author}");
+        string name = "";
+        try {
+            IPlugin plugin = (IPlugin)Activator.CreateInstance(_PluginType);
+            name = plugin.Name;
+            _Logger.LogInformation($"Loading plugin {plugin.Name} by {plugin.Author}");
 
-        await plugin.LoadAsync();
+            await plugin.LoadAsync();
 
-        PluginManager.Plugins.Add(plugin);
+            PluginManager.Plugins.Add(plugin);
+        }
+        catch (Exception ex)
+        {
+            _Logger.LogInformation(ex, $"Failed to load plugin {name}");
+        }
     }
 }

@@ -1,5 +1,5 @@
 namespace LocalMod.Core.Configuration;
 
-internal class LocalModConfig
+public class LocalModConfig
 {
 }

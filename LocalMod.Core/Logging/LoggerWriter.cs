@@ -24,7 +24,7 @@ internal class LoggerWriter : IDisposable
             SaveFile();
         }
 
-        DeleteFiles();
+        //DeleteFiles();
 
         _Stream = new(LogPath, FileMode.Create, FileAccess.Write);
         _Writer = new(_Stream);
@@ -70,12 +70,12 @@ internal class LoggerWriter : IDisposable
 
         _Semaphore.WaitAsync();
 
+        IsDisposed = true;
         GC.SuppressFinalize(this);
 
         _Semaphore.Dispose();
         _Writer.DisposeAsync();
         _Stream.DisposeAsync();
-        IsDisposed = true;
 
         SaveFile();
     }

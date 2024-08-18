@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using SDG.Unturned;
 using System.Reflection;
 using System.Collections.Generic;
+using TestPlugin;
 
 // For more, visit https://openmod.github.io/openmod-docs/devdoc/guides/getting-started.html
 
@@ -56,13 +57,17 @@ public class MyOpenModPlugin : OpenModUnturnedPlugin
 
 public class PlayerConnected : IEventListener<UnturnedPlayerConnectedEvent>
 {
+    //private readonly static ClientInstanceMethod<string> SendLog = ClientInstanceMethod<string>.Get(typeof(NetMethodTest), NetMethodTest.Name);
+    private readonly static ClientStaticMethod<string> SendLog = ClientStaticMethod<string>.Get(typeof(NetMethodTest), NetMethodTest.Name);
+
     public Task HandleEventAsync(object? sender, UnturnedPlayerConnectedEvent @event)
     {
         Console.WriteLine("Starting event");
         ITransportConnection connection = @event.Player.SteamPlayer.transportConnection;
         NetId id = @event.Player.SteamPlayer.GetNetId();
+        SendLog.Invoke(ENetReliability.Reliable, connection, "Hallo from server");
 
-        TestPlugin.Test.SendServerLog.Invoke(id, ENetReliability.Reliable, connection, "Hallo!");
+        //TestPlugin.Test.SendServerLog.Invoke(id, ENetReliability.Reliable, connection, "Hallo!");
 
         return Task.CompletedTask;
     }

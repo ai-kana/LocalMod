@@ -3,6 +3,7 @@ using System.Reflection;
 using Cysharp.Threading.Tasks;
 using LocalMod.Core.Commands;
 using LocalMod.Core.Logging;
+using LocalMod.Core.NetAbstractions;
 using Microsoft.Extensions.Logging;
 using SDG.Unturned;
 
@@ -10,10 +11,11 @@ namespace LocalMod.Core.Plugins;
 
 public class PluginManager
 {
+    private const string PluginDirectory = LocalModEntry.LocalModDirectory + "/Plugins";
+
     internal static ConcurrentBag<IPlugin> Plugins = new();
 
     private static ILogger? _Logger;
-    private const string PluginDirectory = LocalModEntry.LocalModDirectory + "/Plugins";
 
     public static T? GetPlugin<T>() where T : IPlugin
     { 
@@ -41,7 +43,8 @@ public class PluginManager
     private static void LoadPlugin(string path, Queue<IAsyncCommand> queue)
     {
         Assembly assembly = Assembly.LoadFile(path);
-        NetReflection.RegisterFromAssembly(assembly);
+        //NetReflection.RegisterFromAssembly(assembly);
+        NetMethodManager.GetNetMethods(assembly);
         IEnumerable<Type> pluginTypes = assembly.GetTypes().Where(IsPluginPredicate);
         foreach (Type type in pluginTypes)
         {

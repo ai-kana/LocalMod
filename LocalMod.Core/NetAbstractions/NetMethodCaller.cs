@@ -1,4 +1,4 @@
-namespace LocalMod.NetAbstractions;
+namespace LocalMod.Core.NetAbstractions;
 
 public enum NetMethodCaller : byte
 {

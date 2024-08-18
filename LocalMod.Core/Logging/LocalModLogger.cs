@@ -41,7 +41,7 @@ internal class LocalModLogger : ILogger
         string scopeFormat = _Name;
         foreach (LoggerScope scope in _Scopes)
         {
-            scopeFormat += $"->{scope.Name}";
+            scopeFormat += $"::{scope.Name}";
         }
 
         string message = $"[{DateTime.Now.ToString()}] [{GetLevelTag(logLevel)}] [{scopeFormat}] -> {formatter(state, exception)}";
