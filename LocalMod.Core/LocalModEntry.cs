@@ -1,11 +1,11 @@
-using System.Reflection;
 using Cysharp.Threading.Tasks;
+using HarmonyLib;
 using LocalMod.Bootstrapper;
 using LocalMod.Core.Configuration;
 using LocalMod.Core.Logging;
 using LocalMod.Core.Plugins;
+using LocalMod.NetAbstractions;
 using Microsoft.Extensions.Logging;
-using SDG.Unturned;
 
 namespace LocalMod.Core;
 
@@ -17,6 +17,7 @@ public class LocalModEntry : ILocalModEntry
     internal LocalModConfig? Configuration;
 
     private LocalModLoggerProvider? LoggerProvider;
+    private Harmony? _Harmony;
     private ILogger? _Logger;
 
     public async UniTask LoadAsync()
@@ -29,7 +30,13 @@ public class LocalModEntry : ILocalModEntry
         Logger.Init(_Logger, LoggerProvider);
         _Logger.LogInformation("Starting LocalMod...");
 
-        NetReflection.RegisterFromAssembly(Assembly.GetExecutingAssembly());
+        _Harmony = new("LocalMod");
+        _Harmony.PatchAll();
+
+        List<Type> types = new();
+        types.Add(typeof(TestRPC));
+        NetMethodManager.RegisterFromType(types);
+        NetMethodManager.LogAllRPCs();
 
         await PluginManager.LoadAsync();
     }
@@ -38,6 +45,8 @@ public class LocalModEntry : ILocalModEntry
     {
         _Logger?.LogInformation("Shutdowning LocalMod...");
         await PluginManager.UnloadAsync();
+
+        _Harmony?.UnpatchAll();
 
         LoggerProvider!.Dispose();
     }
