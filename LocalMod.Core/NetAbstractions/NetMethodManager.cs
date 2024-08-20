@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Reflection;
 using LocalMod.Core.Logging;
 using Microsoft.Extensions.Logging;
@@ -64,11 +63,6 @@ public class NetMethodManager
         public readonly static FieldInfo MethodIndexField = typeof(ClientMethodInfo).GetField("methodIndex", BindingFlags.Instance | BindingFlags.NonPublic);
     }
 
-    private static MethodInfo FindClientReceiveMethod = typeof(NetReflection).GetMethod("FindClientReceiveMethod", BindingFlags.Static | BindingFlags.NonPublic);
-    private static MethodInfo FindAndRemoveGeneratedMethod = typeof(NetReflection).GetMethod("FindAndRemoveGeneratedMethod", BindingFlags.Static | BindingFlags.NonPublic);
-
-    private static MethodInfo FindServerReceiveMethod = typeof(NetReflection).GetMethod("FindServerReceiveMethod", BindingFlags.Static | BindingFlags.NonPublic);
-
     private static List<ClientMethodInfo> ClientMethods = 
         (List<ClientMethodInfo>)typeof(NetReflection).GetField("clientMethods", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
 
@@ -80,11 +74,6 @@ public class NetMethodManager
 
     private static FieldInfo ServerMethodsLengthField = typeof(NetReflection).GetField("serverMethodsLength", BindingFlags.Static | BindingFlags.NonPublic);
     private static FieldInfo ServerMethodsBitCountField = typeof(NetReflection).GetField("serverMethodsBitCount", BindingFlags.Static | BindingFlags.NonPublic);
-
-    // Generated Method type and fields
-    private readonly static Type GeneratedMethodType = typeof(NetReflection).GetNestedType("GeneratedMethod", BindingFlags.NonPublic);
-    private readonly static FieldInfo GeneratedMethodInfoField = GeneratedMethodType.GetField("info", BindingFlags.Instance | BindingFlags.Public);
-    private readonly static FieldInfo GeneratedMethodAttributeField = GeneratedMethodType.GetField("attribute", BindingFlags.Instance | BindingFlags.Public);
 
     private readonly struct NetMethodData
     {
@@ -172,7 +161,7 @@ public class NetMethodManager
         ServerMethods.Add(info);
     }
 
-    public static void GetNetMethods(Assembly assembly)
+    public static void RegisterNetMethods(Assembly assembly)
     {
         HashSet<NetMethodData> methods = new();
 
@@ -206,7 +195,10 @@ public class NetMethodManager
             }
         }
 
-        ClientMethodsLengthField.SetValue(null, (uint)ClientMethods.Count);
-        ClientMethodsBitCountField.SetValue(null, NetPakConst.CountBits((uint)ClientMethods.Count));
+        ClientMethodsLengthField.SetValue(null, (uint)ServerMethods.Count);
+        ClientMethodsBitCountField.SetValue(null, NetPakConst.CountBits((uint)ServerMethods.Count));
+
+        ServerMethodsLengthField.SetValue(null, (uint)ServerMethods.Count);
+        ServerMethodsBitCountField.SetValue(null, NetPakConst.CountBits((uint)ServerMethods.Count));
     }
 }

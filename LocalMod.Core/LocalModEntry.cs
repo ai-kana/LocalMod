@@ -35,7 +35,7 @@ public class LocalModEntry : ILocalModEntry
         _Harmony.PatchAll();
 
         //NetMethodManager.RegisterFromType(types);
-        NetMethodManager.GetNetMethods(Assembly.GetExecutingAssembly());
+        NetMethodManager.RegisterNetMethods(Assembly.GetExecutingAssembly());
 
         await PluginManager.LoadAsync();
         NetMethodManager.DumpRPCs();

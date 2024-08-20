@@ -44,7 +44,7 @@ public class PluginManager
     {
         Assembly assembly = Assembly.LoadFile(path);
         //NetReflection.RegisterFromAssembly(assembly);
-        NetMethodManager.GetNetMethods(assembly);
+        NetMethodManager.RegisterNetMethods(assembly);
         IEnumerable<Type> pluginTypes = assembly.GetTypes().Where(IsPluginPredicate);
         foreach (Type type in pluginTypes)
         {

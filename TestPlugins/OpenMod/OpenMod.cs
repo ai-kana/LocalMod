@@ -6,13 +6,14 @@ using Cysharp.Threading.Tasks;
 using OpenMod.Unturned.Plugins;
 using OpenMod.API.Plugins;
 using SDG.NetTransport;
-using OpenMod.API.Eventing;
+using OpenMod.API.Eventing; 
 using OpenMod.Unturned.Players.Connections.Events;
 using System.Threading.Tasks;
 using SDG.Unturned;
 using System.Reflection;
 using System.Collections.Generic;
 using TestPlugin;
+using UnityEngine;
 
 // For more, visit https://openmod.github.io/openmod-docs/devdoc/guides/getting-started.html
 
@@ -44,7 +45,6 @@ public class MyOpenModPlugin : OpenModUnturnedPlugin
         {
             m_Logger.LogInformation($"RPC: {method.ToString()}");
         }
-        m_Logger.LogInformation("Wrote RPCs");
 
         return UniTask.CompletedTask;
     }
@@ -60,6 +60,9 @@ public class PlayerConnected : IEventListener<UnturnedPlayerConnectedEvent>
     //private readonly static ClientInstanceMethod<string> SendLog = ClientInstanceMethod<string>.Get(typeof(NetMethodTest), NetMethodTest.Name);
     private readonly static ClientStaticMethod<string> SendLog = ClientStaticMethod<string>.Get(typeof(NetMethodTest), NetMethodTest.Name);
 
+    private readonly static ClientStaticMethod<IEnumerable<string>> SendObject = 
+        ClientStaticMethod<IEnumerable<string>>.Get(typeof(SendChatBulk), nameof(SendChatBulk));
+
     public Task HandleEventAsync(object? sender, UnturnedPlayerConnectedEvent @event)
     {
         Console.WriteLine("Starting event");
@@ -67,7 +70,12 @@ public class PlayerConnected : IEventListener<UnturnedPlayerConnectedEvent>
         NetId id = @event.Player.SteamPlayer.GetNetId();
         SendLog.Invoke(ENetReliability.Reliable, connection, "Hallo from server");
 
-        //TestPlugin.Test.SendServerLog.Invoke(id, ENetReliability.Reliable, connection, "Hallo!");
+        List<string> messages = new();
+        for (int i = 0; i < 10; i++)
+        {
+            messages.Add("Test:" + i.ToString());
+        }
+        SendObject.Invoke(ENetReliability.Reliable, connection, messages);
 
         return Task.CompletedTask;
     }
