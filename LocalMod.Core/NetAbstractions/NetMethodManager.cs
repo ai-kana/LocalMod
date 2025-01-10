@@ -18,8 +18,9 @@ internal class NetMethodManager : IDisposable
 {
     // For patches to access
     private static NetMethodManager Instance = null!;
+    private readonly ILogger _Logger;
 
-    public NetMethodManager(Harmony harmony)
+    public NetMethodManager(ILogger<NetMethodManager> logger, Harmony harmony)
     {
         Instance = this;
 
@@ -217,7 +218,7 @@ internal class NetMethodManager : IDisposable
             InternalClientMethod newMethod = new((uint)i, method);
             _ServerMethods.Add((uint)i, newMethod);
 
-            Console.WriteLine($"Registered client RPC index: {i}, {method}");
+            _Logger.LogDebug($"Registered client RPC index: {i}, {method}");
         }
     }
 
@@ -230,7 +231,7 @@ internal class NetMethodManager : IDisposable
             InternalServerNetMethod newMethod = new((uint)i, method);
             _ClientMethods.Add((uint)i, newMethod);
 
-            Console.WriteLine($"Registered server RPC index: {i}, {method}");
+            _Logger.LogDebug($"Registered server RPC index: {i}, {method}");
         }
     }
 

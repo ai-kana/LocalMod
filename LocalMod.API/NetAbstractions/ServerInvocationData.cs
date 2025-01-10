@@ -27,9 +27,6 @@ public readonly struct InvocationData
 public readonly struct ServerInvocationData
 {
     public readonly NetPakReader Reader;
-    /// <summary>
-    /// is null when in ClientNetMethod
-    /// </summary>
     public readonly SteamPlayer Caller;
 
     public ServerInvocationData(InvocationData data)
