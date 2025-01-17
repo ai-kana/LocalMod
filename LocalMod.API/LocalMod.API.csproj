@@ -11,12 +11,8 @@
         <PackageReference Include="Autofac" Version="8.1.1" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+        <PackageReference Include="OpenMod.UniTask" Version="2021.2.4.1" />
         <PackageReference Include="OpenMod.Unturned.Redist" Version="3.24.6.1" />
-
-        <Reference Include="UniTask, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-            <SpecificVersion>False</SpecificVersion>
-            <HintPath>..\Lib\UniTask.dll</HintPath>
-        </Reference>
     </ItemGroup>
 
 </Project>

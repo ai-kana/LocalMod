@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 namespace LocalMod.Core.Plugins;
 
 [Service(ServiceLifetime.Singleton)]
-internal class PluginLoader : IDisposable
+internal class PluginLoader : IAsyncDisposable
 {
     private readonly struct PluginData
     {
@@ -33,6 +33,8 @@ internal class PluginLoader : IDisposable
         }
     }
 
+    private const string PluginPath = "Plugins";
+
     private readonly HashSet<PluginData> _Plugins;
     private readonly ILogger _Logger;
     private readonly IServiceProvider _Provider;
@@ -46,17 +48,16 @@ internal class PluginLoader : IDisposable
         _Congfiguration = configuration;
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        UnloadPlugins();
+        await UnloadPluginsAsync();
     }
 
-    internal void LoadPlugins()
+    internal async UniTask LoadPluginsAsync()
     {
-        string path = _Congfiguration.GetValue<string>("PluginPath") ?? throw new KeyNotFoundException("No plugin path set");
-        Directory.CreateDirectory(path);
+        Directory.CreateDirectory(PluginPath);
 
-        foreach (string directory in Directory.GetDirectories(path))
+        foreach (string directory in Directory.GetDirectories(PluginPath))
         foreach (string file in Directory.GetFiles(directory))
         {
             if (!file.EndsWith(".dll"))
@@ -65,7 +66,7 @@ internal class PluginLoader : IDisposable
             }
 
             string fullpath = Path.GetFullPath(file);
-            LoadPlugin(Assembly.LoadFile(fullpath));
+            await LoadPluginAsync(Assembly.LoadFile(fullpath));
         }
     }
 
@@ -82,7 +83,7 @@ internal class PluginLoader : IDisposable
         return null;
     }
 
-    internal void UnloadPlugin(string name)
+    internal async UniTask UnloadPluginAsync(string name)
     {
         PluginData? data = GetPluginDataFromName(name);
         if (data == null)
@@ -90,17 +91,24 @@ internal class PluginLoader : IDisposable
             return;
         }
 
-        UnloadPlugin(data.Value);
+        await UnloadPluginAsync(data.Value);
     }
 
-    private void UnloadPlugin(PluginData data, bool remove = true)
+    private async UniTask UnloadPluginAsync(PluginData data, bool remove = true)
     {
         IPlugin plugin = data.Container.Resolve<IPlugin>();
         Harmony harmony = data.Container.Resolve<Harmony>();
         harmony.UnpatchAll(harmony.Id);
 
-        plugin.UnloadAsync().Forget(PluginUnloadExceptionHandler);
-        _Logger.LogInformation($"Unloaded {plugin.Name}");
+        try
+        {
+            await plugin.UnloadAsync();
+            _Logger.LogInformation($"Unloaded {plugin.Name}");
+        }
+        catch (Exception exception)
+        {
+            _Logger.LogError(exception, $"Failed to unload plugin: {plugin.Name}");
+        }
 
         if (remove)
         {
@@ -108,17 +116,49 @@ internal class PluginLoader : IDisposable
         }
     }
 
-    internal void UnloadPlugins()
+    internal async UniTask UnloadPluginsAsync()
     {
         foreach (PluginData data in _Plugins)
         {
-            UnloadPlugin(data, false);
+            await UnloadPluginAsync(data, false);
         }
 
         _Plugins.Clear();
     }
 
-    private void LoadPlugin(Assembly assembly)
+    private async UniTask<IConfiguration?> LoadConfiguration(Assembly assembly, Type pluginType)
+    {
+        string name = assembly.GetName().Name;
+        Directory.CreateDirectory(name);
+
+        string path = Path.Combine(PluginPath, name, "Configuration.json");
+
+        if (File.Exists(path))
+        {
+            return CreateConfiguration();
+        }
+
+        string manifestPath = pluginType.Namespace + ".Configuration.json";
+        await using Stream? stream = assembly.GetManifestResourceStream(manifestPath);
+        if (stream == null)
+        {
+            _Logger.LogWarning($"Failed to load configuration for plugin: {assembly.FullName}");
+            return null;
+        }
+
+        using StreamReader reader = new(stream);
+        string buf = await reader.ReadToEndAsync();
+
+        await using StreamWriter writer = new(File.Open(path, FileMode.Create));
+        await writer.WriteAsync(buf);
+        await writer.FlushAsync();
+
+        return CreateConfiguration();
+
+        IConfiguration CreateConfiguration() => new ConfigurationBuilder().AddJsonFile(path).Build();
+    }
+
+    private async UniTask LoadPluginAsync(Assembly assembly)
     {
         Type pluginType = assembly.GetTypes().FirstOrDefault(x => x.GetInterfaces().Contains(typeof(IPlugin)));
         Type configurationType = assembly.GetTypes().FirstOrDefault(x => x.GetInterfaces().Contains(typeof(IContainerConfiguring)));
@@ -134,6 +174,12 @@ internal class PluginLoader : IDisposable
         Type loggerType = typeof(ILogger<>).MakeGenericType(pluginType);
         ILogger logger = (ILogger)_Provider.GetRequiredService(loggerType);
 
+        IConfiguration? configuration = await LoadConfiguration(assembly, pluginType);
+        if (configuration != null)
+        {
+            builder.RegisterInstance(configuration).As<IConfiguration>().SingleInstance();
+        }
+
         builder.RegisterInstance(logger).As(loggerType).As<ILogger>().SingleInstance();
         builder.RegisterInstance(new Harmony(pluginType.FullName)).As<Harmony>().SingleInstance();
         builder.RegisterType(pluginType).As<IPlugin>().SingleInstance();
@@ -148,40 +194,22 @@ internal class PluginLoader : IDisposable
         IContainer container = builder.Build(ContainerBuildOptions.ExcludeDefaultModules);
         container.Resolve<Harmony>().PatchAll();
 
-        StartPluginAsync(container).Forget(PluginLoadExceptionHandler);
-    }
-
-    private void PluginLoadExceptionHandler(Exception exception)
-    {
-        _Logger.LogError(exception, "Error while loading plugin");
-    }
-
-    private void PluginUnloadExceptionHandler(Exception exception)
-    {
-        _Logger.LogError(exception, "Error while unloading plugin");
+        await StartPluginAsync(container);
     }
 
     private async UniTask StartPluginAsync(IContainer container)
     {
         IPlugin plugin = container.Resolve<IPlugin>();
-        bool loaded = false;
         try
         {
             await plugin.LoadAsync();
-            loaded = true;
+            _Logger.LogInformation($"Loaded {plugin.Name} by {plugin.Author}");
+            _Plugins.Add(new(container, plugin.Name));
         }
         catch (Exception exception)
         {
             _Logger.LogError(exception, $"Failed to load {plugin.Name}");
+            await container.DisposeAsync();
         }
-
-        if (loaded)
-        {
-            _Logger.LogInformation($"Loaded {plugin.Name} by {plugin.Author}");
-            _Plugins.Add(new(container, plugin.Name));
-            return;
-        }
-
-        await container.DisposeAsync();
     }
 }

@@ -66,8 +66,9 @@ internal class SyncRPC : ServerNetMethod<SyncData[]>
     }
 }
 
-// Ask server to kick you when you fail to resolve an RPC
-internal class FailedSyncRPC : ClientNetMethod<string>
+// Confirm with server that you loaded all required RPCs
+// 2 second time window to complete this
+internal class ConfirmLoadedRPC : ClientNetMethod<bool, string?>
 {
     private uint _NetMethodId = (uint)(NetMethodManager.InternalServerMethods.Count + 1);
     public override uint NetMethodId 
@@ -79,12 +80,23 @@ internal class FailedSyncRPC : ClientNetMethod<string>
     public override void ReceiveInvoke(ServerInvocationData data)
     {
         NetPakReader reader = data.Reader;
-        reader.ReadString(out string rpcName);
-        Provider.kick(data.Caller.playerID.steamID, $"Failed to resolve RPC: {rpcName}");
+        reader.ReadBit(out bool failed);
+        if (failed)
+        {
+            reader.ReadString(out string rpc);
+            Provider.kick(data.Caller.playerID.steamID, $"Failed to resolve RPC: {rpc}");
+            return;
+        }
+
+        NetMethodManager.Instance.ReceiveConfirmation(data.Caller.playerID.steamID);
     }
 
-    public override void SendInvoke(NetPakWriter writer, string rpcName)
+    public override void SendInvoke(NetPakWriter writer, bool failed, string? rpcName)
     {
-        writer.WriteString(rpcName);
+        writer.WriteBit(failed);
+        if (failed)
+        {
+            writer.WriteString(rpcName);
+        }
     }
 }

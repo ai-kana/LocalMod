@@ -1,8 +1,7 @@
 {
     "Logging": {
         "LogLevel": "Debug",
-        "LogFilePath": "LocalMod/Logs/Log.log",
+        "LogFilePath": "Logs/Log.log",
         "MaxArchiveAgeDays": 5
-    },
-    "PluginPath": "LocalMod/Plugins"
+    }
 }

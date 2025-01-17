@@ -1,4 +1,5 @@
 using System.Reflection;
+using Cysharp.Threading.Tasks;
 using HarmonyLib;
 using LocalMod.API.IoC;
 using LocalMod.API.NetAbstractions;
@@ -62,18 +63,17 @@ internal class NetMethodManager : IDisposable
     {
         CreateDefaultRPCs();
 
-        ClientNetMethod<string> failed = new FailedSyncRPC();
+        ClientNetMethod<bool, string?> confirm = new ConfirmLoadedRPC();
         foreach (SyncData rpc in rpcs)
         {
             INetMethod method = _AvailableMethods.FirstOrDefault(x => x.GetType().FullName == rpc.RpcTypeName);
             if (method == default)
             {
-                failed.Invoke(rpc.RpcTypeName);
+                confirm.Invoke(true, rpc.RpcTypeName);
                 return;
             }
 
             method.NetMethodId = rpc.RpcId;
-            UnturnedLog.info("Found RPC");
 
             switch (method.AllowedCaller)
             {
@@ -85,6 +85,8 @@ internal class NetMethodManager : IDisposable
                     continue;
             }
         }
+
+        confirm.Invoke(false, null);
     }
 
     private void OnServerHosted()
@@ -157,6 +159,25 @@ internal class NetMethodManager : IDisposable
         }
     }
 
+    // IDs awaiting confirmation from the client that they loaded RPCs
+    private List<CSteamID> _AwaitingConfirmation = new();
+    public void ReceiveConfirmation(CSteamID steamID)
+    {
+        _AwaitingConfirmation.Remove(steamID);
+    }
+
+    private async UniTask KickIfNotConfirmed(CSteamID steamID)
+    {
+        await UniTask.Delay(2000);
+        if (!_AwaitingConfirmation.Contains(steamID))
+        {
+            return;
+        }
+
+        await UniTask.Yield();
+        Provider.kick(steamID, "Failed to confirm rpc sync");
+    }
+
     private static Dictionary<CSteamID, Dictionary<uint, RateLimitData>> RateLimits = new();
     private void OnServerConnected(CSteamID steamID)
     {
@@ -173,6 +194,9 @@ internal class NetMethodManager : IDisposable
         ServerNetMethod<SyncData[]> syncRpc = new SyncRPC();
         ITransportConnection connection = Provider.findTransportConnection(steamID);
         syncRpc.Invoke(rpcs, connection);
+
+        _AwaitingConfirmation.Add(steamID);
+        KickIfNotConfirmed(steamID).Forget();
     }
 
     private void OnServerDisconnected(CSteamID steamID)
@@ -225,7 +249,6 @@ internal class NetMethodManager : IDisposable
             Provider.refuseGarbageConnection(transportConnection, "invalid method id");
             return false;
         }
-        UnturnedLog.info($"Read method invoke: {index}, {method}");
 
         SteamPlayer caller = Provider.findPlayer(transportConnection);
         if (IsRateLimited(method, caller))
@@ -257,7 +280,6 @@ internal class NetMethodManager : IDisposable
         {
             return false;
         }
-        UnturnedLog.info($"Read method invoke: {index}, {method}");
 
         InvocationData data = new(reader);
         try
@@ -317,7 +339,7 @@ internal class NetMethodManager : IDisposable
         SyncRPC sync = new();
         _ServerMethods.Add(sync.NetMethodId, sync);
 
-        FailedSyncRPC failed = new();
+        ConfirmLoadedRPC failed = new();
         _ClientMethods.Add(failed.NetMethodId, failed);
     }
 

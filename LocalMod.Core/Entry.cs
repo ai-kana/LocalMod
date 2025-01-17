@@ -5,6 +5,7 @@ using Autofac.Extensions.DependencyInjection;
 using Cysharp.Threading.Tasks;
 using HarmonyLib;
 using LocalMod.Core.IoC;
+using LocalMod.Core.Manifest;
 using LocalMod.Core.NetAbstractions;
 using LocalMod.Core.Plugins;
 using Microsoft.Extensions.Configuration;
@@ -21,28 +22,61 @@ internal class Entry : IModuleNexus
     private ILogger? _Logger;
 
     private const string LocalModPath = "LocalMod";
-    private const string ConfigurationPath = $"{LocalModPath}/Configuration.json";
-    private IConfiguration CreateConfiguration()
+    private const string ConfigurationPath = $"Configuration.json";
+    private async UniTask<IConfiguration> CreateConfiguration()
     {
         if (!File.Exists(ConfigurationPath))
         {
-            CreateConfigurationFile();
+            Assembly assembly = Assembly.GetAssembly(typeof(Entry));
+            await ManifestHelper.CopyToFile(assembly, "LocalMod.Core.Configuration.json", ConfigurationPath);
         }
 
         ConfigurationBuilder builder = new();
-        builder.AddJsonFile(ConfigurationPath);
+        builder.AddJsonFile(Path.Combine(LocalModPath, ConfigurationPath));
         return builder.Build();
     }
 
-    private void CreateConfigurationFile()
+    private async UniTask LoadAsync()
     {
-        Assembly assembly = Assembly.GetAssembly(typeof(Entry));
-        using StreamReader manifest = new(assembly.GetManifestResourceStream("LocalMod.Core.Configuration.json"));
-        using StreamWriter config = new(ConfigurationPath);
+        Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+        Directory.CreateDirectory(LocalModPath);
+        Directory.SetCurrentDirectory(LocalModPath);
+        Console.WriteLine(Directory.GetCurrentDirectory());
 
-        string content = manifest.ReadToEnd();
+        ContainerBuilder builder = new();
 
-        config.Write(content);
+        IConfiguration configuration = await CreateConfiguration();
+        builder.RegisterInstance(configuration).As<IConfiguration>().SingleInstance();
+        builder.RegisterInstance(new Harmony("LocalMod.Core")).As<Harmony>().SingleInstance();
+        builder.Populate(new ServiceCollection());
+
+        ServiceLoader.LoadServices(Assembly.GetExecutingAssembly(), builder);
+
+        _Container = builder.Build(ContainerBuildOptions.ExcludeDefaultModules);
+
+        NetMethodManager netMethodManager = _Container.Resolve<NetMethodManager>();
+
+        Harmony harmony = _Container.Resolve<Harmony>();
+        harmony.PatchAll();
+
+        PluginLoader pluginLoader = _Container.Resolve<PluginLoader>();
+        await pluginLoader.LoadPluginsAsync();
+
+        _Logger = _Container.Resolve<ILogger<Entry>>();
+        _Logger.LogInformation("Started LocalMod");
+    }
+
+    private async UniTask UnloadAsync()
+    {
+        if (_Container == null)
+        {
+            return;
+        }
+
+        _Container.Resolve<Harmony>().UnpatchAll();
+
+        _Logger?.LogInformation("Shutting down LocalMod");
+        await _Container.DisposeAsync();
     }
 
     private void InitializeUniTask()
@@ -59,43 +93,11 @@ internal class Entry : IModuleNexus
     public void initialize()
     {
         InitializeUniTask();
-
-        Directory.SetCurrentDirectory(AppContext.BaseDirectory);
-        Directory.CreateDirectory(LocalModPath);
-
-        ContainerBuilder builder = new();
-
-        IConfiguration configuration = CreateConfiguration();
-        builder.RegisterInstance(configuration).As<IConfiguration>().SingleInstance();
-        builder.Register(c => new Harmony("LocalMod.Core")).As<Harmony>().SingleInstance();
-        builder.Populate(new ServiceCollection());
-
-        ServiceLoader.LoadServices(Assembly.GetExecutingAssembly(), builder);
-
-        _Container = builder.Build(ContainerBuildOptions.ExcludeDefaultModules);
-
-        NetMethodManager netMethodManager = _Container.Resolve<NetMethodManager>();
-
-        Harmony harmony = _Container.Resolve<Harmony>();
-        harmony.PatchAll();
-
-        PluginLoader pluginLoader = _Container.Resolve<PluginLoader>();
-        pluginLoader.LoadPlugins();
-
-        _Logger = _Container.Resolve<ILogger<Entry>>();
-        _Logger.LogInformation("Started LocalMod");
+        UniTask.RunOnThreadPool(LoadAsync);
     }
 
     public void shutdown()
     {
-        if (_Container == null)
-        {
-            return;
-        }
-
-        _Container.Resolve<Harmony>().UnpatchAll();
-
-        _Logger?.LogInformation("Shutting down LocalMod");
-        _Container.Dispose();
+        UniTask.RunOnThreadPool(UnloadAsync);
     }
 }
