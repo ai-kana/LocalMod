@@ -88,20 +88,20 @@ internal class LoggerWriter : IDisposable, ILoggerWriter
         _IsWriting = true;
 
         while (_MessageQueue.TryDequeue(out string message))
-        try
         {
-            await _FileWriter.WriteLineAsync(message);
-            await _ConsoleWriter.WriteLineAsync(message);
+            try
+            {
+                await _FileWriter.WriteLineAsync(message);
+                await _ConsoleWriter.WriteLineAsync(message);
+            }
+            catch (Exception ex)
+            {
+                UnturnedLog.exception(ex);
+            }
         }
-        catch (Exception ex)
-        {
-            UnturnedLog.exception(ex);
-        }
-        finally
-        {
-            _IsWriting = false;
-            await _FileWriter.FlushAsync();
-            await _ConsoleWriter.FlushAsync();
-        }
+
+        _IsWriting = false;
+        await _FileWriter.FlushAsync();
+        await _ConsoleWriter.FlushAsync();
     }
 }
