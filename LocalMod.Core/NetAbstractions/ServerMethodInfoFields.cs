@@ -38,4 +38,3 @@ internal static class ServerMethodInfoFields
         = typeof(ServerMethodInfo).GetInstanceField("rateLimitIndex")
         ?? throw new("Failed to find ServerMethod field: rateLimitIndex");
 }
-

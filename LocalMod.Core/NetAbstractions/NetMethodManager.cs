@@ -4,6 +4,7 @@ using LocalMod.API.IoC;
 using LocalMod.API.NetAbstractions;
 using LocalMod.API.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using SDG.NetPak;
 using SDG.NetTransport;
 using SDG.Unturned;
@@ -17,12 +18,13 @@ namespace LocalMod.Core.NetAbstractions;
 internal class NetMethodManager : IDisposable
 {
     // For patches to access
-    private static NetMethodManager Instance = null!;
+    public static NetMethodManager Instance {get; private set;} = null!;
     private readonly ILogger _Logger;
 
     public NetMethodManager(ILogger<NetMethodManager> logger, Harmony harmony)
     {
         Instance = this;
+        _Logger = logger;
 
         Type serverMessageType = typeof(Provider).Assembly.GetNonPublicType("ServerMessageHandler_InvokeMethod")
             ?? throw new("Failed to find message server handler type");
@@ -36,53 +38,112 @@ internal class NetMethodManager : IDisposable
         MethodBase clientMethod = clientMessageType.GetStaticMethod("ReadMessage");
         harmony.Patch(clientMethod, new(ClientReadMessagePatch));
 
-        ConvertServerMethods();
-        ConvertClientMethods();
+        CreateDefaultRPCs();
 
+        Provider.onServerHosted += OnServerHosted;
+
+        _AvailableMethods.Add(new TestRPC());
+    }
+
+    private class TestRPC : ServerNetMethod
+    {
+        public override void ReceiveInvoke(ClientInvocationData data)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void SendInvoke(NetPakWriter writer)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public void ReceiveSyncRPC(SyncData[] rpcs)
+    {
+        CreateDefaultRPCs();
+
+        ClientNetMethod<string> failed = new FailedSyncRPC();
+        foreach (SyncData rpc in rpcs)
+        {
+            INetMethod method = _AvailableMethods.FirstOrDefault(x => x.GetType().FullName == rpc.RpcTypeName);
+            if (method == default)
+            {
+                failed.Invoke(rpc.RpcTypeName);
+                return;
+            }
+
+            method.NetMethodId = rpc.RpcId;
+            UnturnedLog.info("Found RPC");
+
+            switch (method.AllowedCaller)
+            {
+                case NetMethodCaller.ServerCaller:
+                    _ServerMethods.Add(method.NetMethodId, method);
+                    continue;
+                case NetMethodCaller.ClientCaller:
+                    _ClientMethods.Add(method.NetMethodId, method);
+                    continue;
+            }
+        }
+    }
+
+    private void OnServerHosted()
+    {
+        _Logger.LogInformation("Hosted");
         Provider.onServerConnected += OnServerConnected;
         Provider.onServerDisconnected += OnServerDisconnected;
+
+        // make room for the statically defined sync rpc and failed sync rpc
+        uint serverId = (uint)InternalClientMethods.Count + 1;
+        uint clientId = (uint)InternalServerMethods.Count + 1;
+        foreach (INetMethod method in _AvailableMethods)
+        {
+            switch (method.AllowedCaller)
+            {
+                case NetMethodCaller.ServerCaller:
+                    serverId++;
+                    method.NetMethodId = serverId;
+                    _ServerMethods.Add(serverId, method);
+                    continue;
+                case NetMethodCaller.ClientCaller:
+                    clientId++;
+                    method.NetMethodId = clientId;
+                    _ClientMethods.Add(clientId, method);
+                    continue;
+            }
+        }
     }
 
     public void Dispose()
     {
-        Provider.onServerConnected -= OnServerConnected;
-        Provider.onServerDisconnected -= OnServerDisconnected;
+        if (Provider.isServer)
+        {
+            Provider.onServerConnected -= OnServerConnected;
+            Provider.onServerDisconnected -= OnServerDisconnected;
+        }
     }
 
-    public IReadOnlyDictionary<uint, INetMethod> ClientMethods => _ClientMethods;
+    // Methods that can be called by the server
     public IReadOnlyDictionary<uint, INetMethod> ServerMethods => _ServerMethods;
+    // Methods that can be called by the client
+    public IReadOnlyDictionary<uint, INetMethod> ClientMethods => _ClientMethods;
 
-    private readonly Dictionary<uint, INetMethod> _ClientMethods = new();
     private readonly Dictionary<uint, INetMethod> _ServerMethods = new();
+    private readonly Dictionary<uint, INetMethod> _ClientMethods = new();
+
+    public IReadOnlyList<INetMethod> AvailableMethods => _AvailableMethods;
+    private readonly List<INetMethod> _AvailableMethods = new();
 
     private void RegisterFromType(Type type)
     {
         INetMethod method = (INetMethod)Activator.CreateInstance(type);
-        uint id = method.NetMethodId;
-
-        switch (method.AllowedCaller)
-        {
-            case NetMethodCaller.ClientCaller:
-                _ClientMethods.Add(id, method);
-                break;
-            case NetMethodCaller.ServerCaller:
-                _ServerMethods.Add(id, method);
-                break;
-        }
+        RegisterFromInstance(method);
     }
 
     private void RegisterFromInstance(INetMethod method)
     {
         uint id = method.NetMethodId;
-        switch (method.AllowedCaller)
-        {
-            case NetMethodCaller.ClientCaller:
-                _ClientMethods.Add(id, method);
-                break;
-            case NetMethodCaller.ServerCaller:
-                _ServerMethods.Add(id, method);
-                break;
-        }
+        _AvailableMethods.Add(method);
     }
 
     private readonly struct RateLimitData
@@ -97,12 +158,24 @@ internal class NetMethodManager : IDisposable
     }
 
     private static Dictionary<CSteamID, Dictionary<uint, RateLimitData>> RateLimits = new();
-    private static void OnServerConnected(CSteamID steamID)
+    private void OnServerConnected(CSteamID steamID)
     {
         RateLimits.Add(steamID, new());
+
+        int count = _AvailableMethods.Count;
+        SyncData[] rpcs = new SyncData[count];
+        for (int i = 0; i < count; i++)
+        {
+            INetMethod method = _AvailableMethods[i];
+            rpcs[i] = new(method);
+        }
+
+        ServerNetMethod<SyncData[]> syncRpc = new SyncRPC();
+        ITransportConnection connection = Provider.findTransportConnection(steamID);
+        syncRpc.Invoke(rpcs, connection);
     }
 
-    private static void OnServerDisconnected(CSteamID steamID)
+    private void OnServerDisconnected(CSteamID steamID)
     {
         RateLimits.Remove(steamID);
     }
@@ -152,6 +225,7 @@ internal class NetMethodManager : IDisposable
             Provider.refuseGarbageConnection(transportConnection, "invalid method id");
             return false;
         }
+        UnturnedLog.info($"Read method invoke: {index}, {method}");
 
         SteamPlayer caller = Provider.findPlayer(transportConnection);
         if (IsRateLimited(method, caller))
@@ -183,6 +257,7 @@ internal class NetMethodManager : IDisposable
         {
             return false;
         }
+        UnturnedLog.info($"Read method invoke: {index}, {method}");
 
         InvocationData data = new(reader);
         try
@@ -217,8 +292,6 @@ internal class NetMethodManager : IDisposable
             ClientMethodInfo method = InternalClientMethods[i];
             InternalClientMethod newMethod = new((uint)i, method);
             _ServerMethods.Add((uint)i, newMethod);
-
-            _Logger.LogDebug($"Registered client RPC index: {i}, {method}");
         }
     }
 
@@ -230,9 +303,22 @@ internal class NetMethodManager : IDisposable
             ServerMethodInfo method = InternalServerMethods[i];
             InternalServerNetMethod newMethod = new((uint)i, method);
             _ClientMethods.Add((uint)i, newMethod);
-
-            _Logger.LogDebug($"Registered server RPC index: {i}, {method}");
         }
+    }
+
+    private void CreateDefaultRPCs()
+    {
+        _ServerMethods.Clear();
+        _ClientMethods.Clear();
+
+        ConvertClientMethods();
+        ConvertServerMethods();
+
+        SyncRPC sync = new();
+        _ServerMethods.Add(sync.NetMethodId, sync);
+
+        FailedSyncRPC failed = new();
+        _ClientMethods.Add(failed.NetMethodId, failed);
     }
 
     private readonly static NetPakWriter Writer =
@@ -277,6 +363,74 @@ internal class NetMethodManager : IDisposable
         uint id = (uint)ClientMethodInfoFields.MethodIndexField.GetValue(info);
         writer.WriteUInt32(id);
         __result = writer;
+
+        return false;
+    }
+
+    private readonly static NetPakReader Reader = typeof(Provider).Assembly
+        .GetNonPublicType("NetMessages")
+        .GetStaticField("reader")
+        .GetValue<NetPakReader>()
+        ?? throw new("Failed to get reader");
+
+    private readonly static byte[] ProviderBuffer =
+        typeof(Provider)
+        .GetStaticField("buffer")
+        .GetValue<byte[]>()
+        ?? throw new("Failed to get provider buffer");
+
+    [HarmonyPatch(typeof(ClientMethodHandle), "InvokeLoopback")]
+    [HarmonyPrefix]
+    private static bool ClientInvokeLoopbackPatch(ClientMethodHandle __instance, NetPakWriter writer)
+    {
+        NetPakReader reader = Reader;
+        reader.SetBufferSegmentCopy(writer.buffer, ProviderBuffer, writer.writeByteIndex);
+        reader.Reset();
+        reader.ReadBits(5, out _);
+        reader.ReadUInt32(out uint index);
+
+        if (!Instance._ServerMethods.TryGetValue(index, out INetMethod method))
+        {
+            return false;
+        }
+
+        InvocationData data = new(reader);
+        try
+        {
+            method.ReceiveInvoke(data);
+        }
+        catch (Exception exception)
+        {
+            UnturnedLog.exception(exception, "Failed to invoke loopback");
+        }
+
+        return false;
+    }
+
+    [HarmonyPatch(typeof(ServerMethodHandle), "InvokeLoopback")]
+    [HarmonyPrefix]
+    private static bool ServerInvokeLoopbackPatch(ServerMethodHandle __instance, NetPakWriter writer)
+    {
+        NetPakReader reader = Reader;
+        reader.SetBufferSegmentCopy(writer.buffer, ProviderBuffer, writer.writeByteIndex);
+        reader.Reset();
+        reader.ReadBits(4, out _);
+        reader.ReadUInt32(out uint index);
+
+        if (!Instance._ClientMethods.TryGetValue(index, out INetMethod method))
+        {
+            return false;
+        }
+
+        InvocationData data = new(Provider.clients[0], reader);
+        try
+        {
+            method.ReceiveInvoke(data);
+        }
+        catch (Exception exception)
+        {
+            UnturnedLog.exception(exception, "Failed to invoke loopback");
+        }
 
         return false;
     }

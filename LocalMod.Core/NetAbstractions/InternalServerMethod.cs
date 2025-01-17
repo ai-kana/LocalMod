@@ -15,6 +15,11 @@ internal class InternalServerNetMethod : INetMethod
         _NetMethodId = id;
     }
 
+    public override string ToString()
+    {
+        return _MethodInfo.ToString();
+    }
+
     public NetMethodCaller AllowedCaller => NetMethodCaller.ClientCaller;
 
     private readonly ServerMethodInfo _MethodInfo;
@@ -24,11 +29,14 @@ internal class InternalServerNetMethod : INetMethod
     public float RateLimit => _RateLimit;
 
     private readonly uint _NetMethodId;
-    public uint NetMethodId => _NetMethodId;
+    public uint NetMethodId 
+    {
+        get => _NetMethodId;
+        set => throw new NotImplementedException();
+    }
 
     public void ReceiveInvoke(InvocationData data)
     {
-        object[] args = [];
         ServerInvocationContext context = ActivatorEx.CreateInstance<ServerInvocationContext>(
                 ServerInvocationContext.EOrigin.Remote, 
                 data.Caller!, 
@@ -38,4 +46,3 @@ internal class InternalServerNetMethod : INetMethod
         _ReadMethod(context);
     }
 }
-

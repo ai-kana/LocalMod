@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Cysharp.Threading.Tasks;
 using LocalMod.API.IoC;
 using Microsoft.Extensions.Configuration;
@@ -72,20 +73,25 @@ internal class LoggerWriter : IDisposable, ILoggerWriter
 
     public void EnqueueMessage(string message)
     {
-        _ = WriteMessage(message);
+        _MessageQueue.Enqueue(message);
+        _ = WriteMessages();
     }
 
-    internal async UniTask WriteMessage(string message)
+    private ConcurrentQueue<string> _MessageQueue = new();
+    private bool _IsWriting = false;
+    internal async UniTask WriteMessages()
     {
+        if (_IsWriting)
+        {
+            return;
+        }
+        _IsWriting = true;
+
+        while (_MessageQueue.TryDequeue(out string message))
         try
         {
-            await _Semaphore.WaitAsync();
-
             await _FileWriter.WriteLineAsync(message);
             await _ConsoleWriter.WriteLineAsync(message);
-
-            await _FileWriter.FlushAsync();
-            await _ConsoleWriter.FlushAsync();
         }
         catch (Exception ex)
         {
@@ -93,7 +99,9 @@ internal class LoggerWriter : IDisposable, ILoggerWriter
         }
         finally
         {
-            _Semaphore.Release();
+            _IsWriting = false;
+            await _FileWriter.FlushAsync();
+            await _ConsoleWriter.FlushAsync();
         }
     }
 }

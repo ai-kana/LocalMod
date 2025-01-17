@@ -99,7 +99,7 @@ internal class PluginLoader : IDisposable
         Harmony harmony = data.Container.Resolve<Harmony>();
         harmony.UnpatchAll(harmony.Id);
 
-        UniTask.Run(async () => await plugin.UnloadAsync());
+        plugin.UnloadAsync().Forget(PluginUnloadExceptionHandler);
         _Logger.LogInformation($"Unloaded {plugin.Name}");
 
         if (remove)
@@ -148,10 +148,17 @@ internal class PluginLoader : IDisposable
         IContainer container = builder.Build(ContainerBuildOptions.ExcludeDefaultModules);
         container.Resolve<Harmony>().PatchAll();
 
-        UniTask.Run(async () => 
-        {
-            await StartPluginAsync(container);
-        });
+        StartPluginAsync(container).Forget(PluginLoadExceptionHandler);
+    }
+
+    private void PluginLoadExceptionHandler(Exception exception)
+    {
+        _Logger.LogError(exception, "Error while loading plugin");
+    }
+
+    private void PluginUnloadExceptionHandler(Exception exception)
+    {
+        _Logger.LogError(exception, "Error while unloading plugin");
     }
 
     private async UniTask StartPluginAsync(IContainer container)

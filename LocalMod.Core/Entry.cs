@@ -2,6 +2,7 @@
 using Autofac;
 using Autofac.Builder;
 using Autofac.Extensions.DependencyInjection;
+using Cysharp.Threading.Tasks;
 using HarmonyLib;
 using LocalMod.Core.IoC;
 using LocalMod.Core.NetAbstractions;
@@ -10,7 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SDG.Framework.Modules;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
+using UnityEngine.LowLevel;
 
 namespace LocalMod.Core; 
 
@@ -44,8 +45,21 @@ internal class Entry : IModuleNexus
         config.Write(content);
     }
 
+    private void InitializeUniTask()
+    {
+        if (PlayerLoopHelper.IsInjectedUniTaskPlayerLoop())
+        {
+            return;
+        }
+
+        PlayerLoopSystem system = PlayerLoop.GetCurrentPlayerLoop();
+        PlayerLoopHelper.Initialize(ref system);
+    }
+
     public void initialize()
     {
+        InitializeUniTask();
+
         Directory.SetCurrentDirectory(AppContext.BaseDirectory);
         Directory.CreateDirectory(LocalModPath);
 
@@ -61,7 +75,6 @@ internal class Entry : IModuleNexus
         _Container = builder.Build(ContainerBuildOptions.ExcludeDefaultModules);
 
         NetMethodManager netMethodManager = _Container.Resolve<NetMethodManager>();
-        netMethodManager.RegisterFromAssembly(Assembly.GetExecutingAssembly());
 
         Harmony harmony = _Container.Resolve<Harmony>();
         harmony.PatchAll();

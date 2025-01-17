@@ -10,7 +10,7 @@ public interface INetMethod
     /// <summary>
     /// Unique method id
     /// </summary>
-    public uint NetMethodId {get;}
+    public uint NetMethodId {get; set;}
 
     /// <summary>
     /// Delay between allowed method calls in seconds

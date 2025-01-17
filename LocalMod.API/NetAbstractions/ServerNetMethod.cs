@@ -56,7 +56,7 @@ public abstract class ServerNetMethod : INetMethod
 {
     public NetMethodCaller AllowedCaller => NetMethodCaller.ServerCaller;
 
-    public abstract uint NetMethodId {get;}
+    public virtual uint NetMethodId {get; set;}
     public virtual float RateLimit => 0;
 
     public abstract void SendInvoke(NetPakWriter writer);
@@ -93,7 +93,7 @@ public abstract class ServerNetMethod<T1> : INetMethod
 {
     public NetMethodCaller AllowedCaller => NetMethodCaller.ServerCaller;
 
-    public abstract uint NetMethodId {get;}
+    public virtual uint NetMethodId {get; set;}
     public float RateLimit => 0;
 
     public abstract void SendInvoke(NetPakWriter writer, T1 arg1);
@@ -130,7 +130,7 @@ public abstract class ServerNetMethod<T1, T2> : INetMethod
 {
     public NetMethodCaller AllowedCaller => NetMethodCaller.ServerCaller;
 
-    public abstract uint NetMethodId {get;}
+    public virtual uint NetMethodId {get; set;}
     public float RateLimit => 0;
 
     public abstract void SendInvoke(NetPakWriter writer, T1 arg1, T2 arg2);
@@ -167,7 +167,7 @@ public abstract class ServerNetMethod<T1, T2, T3> : INetMethod
 {
     public NetMethodCaller AllowedCaller => NetMethodCaller.ServerCaller;
 
-    public abstract uint NetMethodId {get;}
+    public virtual uint NetMethodId {get; set;}
     public float RateLimit => 0;
 
     public abstract void SendInvoke(NetPakWriter writer, T1 arg1, T2 arg2, T3 arg3);
@@ -204,7 +204,7 @@ public abstract class ServerNetMethod<T1, T2, T3, T4> : INetMethod
 {
     public NetMethodCaller AllowedCaller => NetMethodCaller.ServerCaller;
 
-    public abstract uint NetMethodId {get;}
+    public virtual uint NetMethodId {get; set;}
     public float RateLimit => 0;
 
     public abstract void SendInvoke(NetPakWriter writer, T1 arg1, T2 arg2, T3 arg3, T4 arg4);
@@ -241,7 +241,7 @@ public abstract class ServerNetMethod<T1, T2, T3, T4, T5> : INetMethod
 {
     public NetMethodCaller AllowedCaller => NetMethodCaller.ServerCaller;
 
-    public abstract uint NetMethodId {get;}
+    public virtual uint NetMethodId {get; set;}
     public float RateLimit => 0;
 
     public abstract void SendInvoke(NetPakWriter writer, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5);
@@ -278,7 +278,7 @@ public abstract class ServerNetMethod<T1, T2, T3, T4, T5, T6> : INetMethod
 {
     public NetMethodCaller AllowedCaller => NetMethodCaller.ServerCaller;
 
-    public abstract uint NetMethodId {get;}
+    public virtual uint NetMethodId {get; set;}
     public float RateLimit => 0;
 
     public abstract void SendInvoke(NetPakWriter writer, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6);
@@ -315,7 +315,7 @@ public abstract class ServerNetMethod<T1, T2, T3, T4, T5, T6, T7> : INetMethod
 {
     public NetMethodCaller AllowedCaller => NetMethodCaller.ServerCaller;
 
-    public abstract uint NetMethodId {get;}
+    public virtual uint NetMethodId {get; set;}
     public float RateLimit => 0;
 
     public abstract void SendInvoke(NetPakWriter writer, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7);
@@ -352,7 +352,7 @@ public abstract class ServerNetMethod<T1, T2, T3, T4, T5, T6, T7, T8> : INetMeth
 {
     public NetMethodCaller AllowedCaller => NetMethodCaller.ServerCaller;
 
-    public abstract uint NetMethodId {get;}
+    public virtual uint NetMethodId {get; set;}
     public float RateLimit => 0;
 
     public abstract void SendInvoke(NetPakWriter writer, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8);
@@ -389,7 +389,7 @@ public abstract class ServerNetMethod<T1, T2, T3, T4, T5, T6, T7, T8, T9> : INet
 {
     public NetMethodCaller AllowedCaller => NetMethodCaller.ServerCaller;
 
-    public abstract uint NetMethodId {get;}
+    public virtual uint NetMethodId {get; set;}
     public float RateLimit => 0;
 
     public abstract void SendInvoke(NetPakWriter writer, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9);
@@ -426,7 +426,7 @@ public abstract class ServerNetMethod<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> :
 {
     public NetMethodCaller AllowedCaller => NetMethodCaller.ServerCaller;
 
-    public abstract uint NetMethodId {get;}
+    public virtual uint NetMethodId {get; set;}
     public float RateLimit => 0;
 
     public abstract void SendInvoke(NetPakWriter writer, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, T6 arg6, T7 arg7, T8 arg8, T9 arg9, T10 arg10);
