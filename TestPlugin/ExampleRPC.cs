@@ -8,7 +8,7 @@ namespace TestPlugin;
 // ServerNetMethods are called by the server and sent to the client
 public class ExampleRPC : ServerNetMethod<float>
 {
-    public async UniTask DoFlip(float delta)
+    public async UniTask DoScale(float delta)
     {
         if (delta == 0)
         {
@@ -23,14 +23,14 @@ public class ExampleRPC : ServerNetMethod<float>
             return;
         }
 
-            self.gameObject.transform.localScale /= (delta * -1);
+        self.gameObject.transform.localScale /= (delta * -1);
     }
 
     public override void ReceiveInvoke(ClientInvocationData data)
     {
         NetPakReader reader = data.Reader;
         reader.ReadFloat(out float delta);
-        DoFlip(delta).Forget();
+        DoScale(delta).Forget();
     }
 
     public override void SendInvoke(NetPakWriter writer, float delta)

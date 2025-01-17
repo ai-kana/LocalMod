@@ -229,7 +229,6 @@ internal class NetMethodManager : IDisposable
             Provider.refuseGarbageConnection(transportConnection, "invalid method id");
             return false;
         }
-        Console.WriteLine($"Read id: {index}, {method}");
 
         SteamPlayer caller = Provider.findPlayer(transportConnection);
         if (IsRateLimited(method, caller))
