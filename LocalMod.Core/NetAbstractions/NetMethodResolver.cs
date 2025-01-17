@@ -5,23 +5,21 @@ using Microsoft.Extensions.DependencyInjection;
 namespace LocalMod.Core.NetAbstractions;
 
 [Service(ServiceLifetime.Singleton, typeof(INetMethodResolver))]
-internal class NetInvokableResolver : INetMethodResolver
+internal class NetMethodResolver : INetMethodResolver
 {
     private readonly NetMethodManager _Manager;
-    public NetInvokableResolver(NetMethodManager manager)
+    public NetMethodResolver(NetMethodManager manager)
     {
         _Manager = manager;
     }
 
-    public INetMethod? ResolveClientMethod(uint id)
+    public INetMethod? ResolveServerMethod(Type type)
     {
-        _Manager.ServerMethods.TryGetValue(id, out INetMethod method);
-        return method;
+        return _Manager.ServerMethods.Values.FirstOrDefault(x => x.GetType() == type);
     }
 
-    public INetMethod? ResolveServerMethod(uint id)
+    public INetMethod? ResolveClientMethod(Type type)
     {
-        _Manager.ClientMethods.TryGetValue(id, out INetMethod method);
-        return method;
+        return _Manager.ClientMethods.Values.FirstOrDefault(x => x.GetType() == type);
     }
 }

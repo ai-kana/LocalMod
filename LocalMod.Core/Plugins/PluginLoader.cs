@@ -5,8 +5,10 @@ using Autofac.Extensions.DependencyInjection;
 using Cysharp.Threading.Tasks;
 using HarmonyLib;
 using LocalMod.API.IoC;
+using LocalMod.API.NetAbstractions;
 using LocalMod.API.Plugins;
 using LocalMod.Core.IoC;
+using LocalMod.Core.NetAbstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -39,10 +41,19 @@ internal class PluginLoader : IAsyncDisposable
     private readonly ILogger _Logger;
     private readonly IServiceProvider _Provider;
     private readonly IConfiguration _Congfiguration;
+    private readonly NetMethodManager _NetMethodManager;
+    private readonly INetMethodResolver _Resolver;
 
-    public PluginLoader(IServiceProvider provider, IConfiguration configuration, ILogger<PluginLoader> logger)
+    public PluginLoader(
+            INetMethodResolver resolver,
+            NetMethodManager manager, 
+            IServiceProvider provider, 
+            IConfiguration configuration, 
+            ILogger<PluginLoader> logger)
     {
         _Plugins = new();
+        _Resolver = resolver;
+        _NetMethodManager = manager;
         _Logger = logger;
         _Provider = provider;
         _Congfiguration = configuration;
@@ -57,14 +68,8 @@ internal class PluginLoader : IAsyncDisposable
     {
         Directory.CreateDirectory(PluginPath);
 
-        foreach (string directory in Directory.GetDirectories(PluginPath))
-        foreach (string file in Directory.GetFiles(directory))
+        foreach (string file in Directory.GetFiles(PluginPath, "*.dll"))
         {
-            if (!file.EndsWith(".dll"))
-            {
-                continue;
-            }
-
             string fullpath = Path.GetFullPath(file);
             await LoadPluginAsync(Assembly.LoadFile(fullpath));
         }
@@ -180,6 +185,7 @@ internal class PluginLoader : IAsyncDisposable
             builder.RegisterInstance(configuration).As<IConfiguration>().SingleInstance();
         }
 
+        builder.RegisterInstance(_Resolver).As<INetMethodResolver>().SingleInstance();
         builder.RegisterInstance(logger).As(loggerType).As<ILogger>().SingleInstance();
         builder.RegisterInstance(new Harmony(pluginType.FullName)).As<Harmony>().SingleInstance();
         builder.RegisterType(pluginType).As<IPlugin>().SingleInstance();
@@ -193,6 +199,8 @@ internal class PluginLoader : IAsyncDisposable
 
         IContainer container = builder.Build(ContainerBuildOptions.ExcludeDefaultModules);
         container.Resolve<Harmony>().PatchAll();
+
+        _NetMethodManager.RegisterFromAssembly(assembly);
 
         await StartPluginAsync(container);
     }

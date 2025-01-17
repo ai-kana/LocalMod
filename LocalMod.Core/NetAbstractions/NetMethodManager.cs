@@ -61,6 +61,7 @@ internal class NetMethodManager : IDisposable
 
     public void ReceiveSyncRPC(SyncData[] rpcs)
     {
+        _Logger.LogInformation("Received sync rpc");
         CreateDefaultRPCs();
 
         ClientNetMethod<bool, string?> confirm = new ConfirmLoadedRPC();
@@ -145,6 +146,7 @@ internal class NetMethodManager : IDisposable
     private void RegisterFromInstance(INetMethod method)
     {
         uint id = method.NetMethodId;
+        _Logger.LogDebug($"Registered RPC: {method.ToString()}");
         _AvailableMethods.Add(method);
     }
 
@@ -157,25 +159,6 @@ internal class NetMethodManager : IDisposable
             LastCall = lastCall;
             LimitedHits = limitedHits;
         }
-    }
-
-    // IDs awaiting confirmation from the client that they loaded RPCs
-    private List<CSteamID> _AwaitingConfirmation = new();
-    public void ReceiveConfirmation(CSteamID steamID)
-    {
-        _AwaitingConfirmation.Remove(steamID);
-    }
-
-    private async UniTask KickIfNotConfirmed(CSteamID steamID)
-    {
-        await UniTask.Delay(2000);
-        if (!_AwaitingConfirmation.Contains(steamID))
-        {
-            return;
-        }
-
-        await UniTask.Yield();
-        Provider.kick(steamID, "Failed to confirm rpc sync");
     }
 
     private static Dictionary<CSteamID, Dictionary<uint, RateLimitData>> RateLimits = new();
@@ -194,9 +177,6 @@ internal class NetMethodManager : IDisposable
         ServerNetMethod<SyncData[]> syncRpc = new SyncRPC();
         ITransportConnection connection = Provider.findTransportConnection(steamID);
         syncRpc.Invoke(rpcs, connection);
-
-        _AwaitingConfirmation.Add(steamID);
-        KickIfNotConfirmed(steamID).Forget();
     }
 
     private void OnServerDisconnected(CSteamID steamID)
@@ -249,6 +229,7 @@ internal class NetMethodManager : IDisposable
             Provider.refuseGarbageConnection(transportConnection, "invalid method id");
             return false;
         }
+        Console.WriteLine($"Read id: {index}, {method}");
 
         SteamPlayer caller = Provider.findPlayer(transportConnection);
         if (IsRateLimited(method, caller))
@@ -339,8 +320,8 @@ internal class NetMethodManager : IDisposable
         SyncRPC sync = new();
         _ServerMethods.Add(sync.NetMethodId, sync);
 
-        ConfirmLoadedRPC failed = new();
-        _ClientMethods.Add(failed.NetMethodId, failed);
+        ConfirmLoadedRPC confirm = new();
+        _ClientMethods.Add(confirm.NetMethodId, confirm);
     }
 
     private readonly static NetPakWriter Writer =

@@ -87,8 +87,6 @@ internal class ConfirmLoadedRPC : ClientNetMethod<bool, string?>
             Provider.kick(data.Caller.playerID.steamID, $"Failed to resolve RPC: {rpc}");
             return;
         }
-
-        NetMethodManager.Instance.ReceiveConfirmation(data.Caller.playerID.steamID);
     }
 
     public override void SendInvoke(NetPakWriter writer, bool failed, string? rpcName)

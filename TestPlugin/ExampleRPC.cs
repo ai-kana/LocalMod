@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using LocalMod.API.NetAbstractions;
 using SDG.NetPak;
 using SDG.Unturned;
@@ -5,20 +6,35 @@ using SDG.Unturned;
 namespace TestPlugin;
 
 // ServerNetMethods are called by the server and sent to the client
-public class ExampleRPC : ServerNetMethod<string>
+public class ExampleRPC : ServerNetMethod<float>
 {
-    public const uint Id = 2234121;
-    public override uint NetMethodId => Id;
+    public async UniTask DoFlip(float delta)
+    {
+        if (delta == 0)
+        {
+            return;
+        }
+
+        await UniTask.Yield();
+        Player self = Player.player ?? throw new("Player invalid");
+        if (delta > 0f)
+        {
+            self.gameObject.transform.localScale *= delta;
+            return;
+        }
+
+            self.gameObject.transform.localScale /= (delta * -1);
+    }
 
     public override void ReceiveInvoke(ClientInvocationData data)
     {
         NetPakReader reader = data.Reader;
-        reader.ReadString(out string message);
-        UnturnedLog.info(message);
+        reader.ReadFloat(out float delta);
+        DoFlip(delta).Forget();
     }
 
-    public override void SendInvoke(NetPakWriter writer, string message)
+    public override void SendInvoke(NetPakWriter writer, float delta)
     {
-        writer.WriteString(message);
+        writer.WriteFloat(delta);
     }
 }

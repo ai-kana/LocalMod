@@ -41,7 +41,6 @@ internal class Entry : IModuleNexus
         Directory.SetCurrentDirectory(AppContext.BaseDirectory);
         Directory.CreateDirectory(LocalModPath);
         Directory.SetCurrentDirectory(LocalModPath);
-        Console.WriteLine(Directory.GetCurrentDirectory());
 
         ContainerBuilder builder = new();
 
